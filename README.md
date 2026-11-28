@@ -1,52 +1,192 @@
 # Browser Memory Engine (BME)
 
-> **Local-first, zero-backend long-term memory model for single-file AI companion web apps.**  
-> 面向单文件前端 AI 陪伴、虚拟恋爱与连续角色扮演应用的浏览器原生长期记忆模型（BYOK / 零必需业务后端 / 原文可追溯）。
+A framework for building AI companions with long-term memory that runs entirely in the browser — no server, no database setup, no cloud.
 
-![Status](https://img.shields.io/badge/Status-Spec%20Ready%20%2F%20WIP-blue)
-![Architecture](https://img.shields.io/badge/Architecture-Local--First%20%26%20Zero--Backend-green)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+Memory is stored in **IndexedDB** via [Dexie](https://dexie.org), extracted by any OpenAI-compatible LLM, and recalled using **BM25** keyword search with time-decay reranking.
 
 ---
 
-## 为什么做 BME？
+## Architecture
 
-绝大多数纯前端 AI 聊天工具仅依赖“滑动消息窗口”或“滚动摘要”维持对话，导致跨窗口失忆、更换模型后人设漂移、旧偏好覆盖新偏好，或者为了做长期记忆被迫部署复杂的 Python / Docker / 向量数据库后端。
+BME organizes memory into six layers (M0–M5):
 
-**BME 的目标**是把陪伴场景真正需要的长期记忆生命周期，压缩进一个**单文件前端即可完整运行**的轻量模型中：
+| Layer | Name | Description |
+|-------|------|-------------|
+| **M0** | Persona | Character identity, system prompt, interaction boundaries |
+| **M1** | Vibe | Relationship atmosphere snapshot (tension, warmth, emotion) |
+| **M2** | Facts | User preferences, habits, identity — explicit or inferred |
+| **M3** | Episodes | Key emotional events, shared experiences, milestones |
+| **M4** | Commitments | Promises and plans between user and AI |
+| **M5** | Messages | Raw conversation archive (append-only) |
 
-- **零后端与 BYOK**：只需用户自带模型 API Key，无需自建业务服务器与远端记忆数据库。
-- **数据完全归属本地**：所有原始对话与提炼记忆均保存在用户浏览器本地，支持随时查看、纠错、锁定、彻底删除与加密导出。
-- **专为高频陪伴对话设计**：
-  - **5+1 轻量实体结构**：人格设定（M0）、短期氛围快照（M1）、显式变迁事实（M2）、情景与情绪（M3）、约定状态机（M4）与原始档案（M5）。
-  - **跨窗口情绪连贯**：通过 `M1 氛围快照` 留住上次对话结束时的关系张力与情绪余温，避免新开窗口瞬间出戏。
-  - **写入期语义标签扩展**：在提取记忆时顺手生成口语同义词与隐喻标签，让零配置的纯文本标准模式也能有效召回含蓄表达。
-  - **批处理与防抖提取**：适配碎片化连发聊天，不阻塞主对话，显著降低 Token 成本。
-  - **反客服感注入契约**：遵循“宁缺毋滥”召回底线与潜意识化提示词约束，杜绝 AI 机械播报档案。
-  - **虚实硬隔离**：通过作用域防火墙隔离真实用户偏好与虚构角色扮演剧情。
-
----
-
-## 文档导航
-
-- 📘 **[完整架构与记忆模型规范 (BME_SPEC.md)](./BME_SPEC.md)** — 包含 5+1 实体定义、批处理生命周期、冲突裁决、召回策略、注入契约与 100 题评测基准。
-
----
-
-## 开发路线图（Roadmap）
-
-本项目采用 **Spec-First（规范先行）** 方式推进，核心引擎将与单文件参考应用完全解耦：
-
-- [x] **RFC / Spec v2.0**：完成技术栈无关的浏览器长期记忆模型规范（`BME_SPEC.md`）
-- [ ] **Phase 0（底座与主权）**：核心数据 Schema、作用域隔离、原始档案存储与加密导入导出
-- [ ] **Phase 1（陪伴记忆闭环）**：批处理防抖队列、结构化提取、`searchTags` 标准召回、显式事实变迁、反客服感上下文组装器
-- [ ] **Phase 2（单文件参考应用）**：基于 BME 的单文件前端 AI 陪伴聊天项目落地
-- [ ] **Phase 3（评测与增强）**：100 题中文陪伴评测集、可选混合向量检索与周期性长期反思
+```
+User message
+     │
+     ▼
+buildSystemPrompt()         ← M0 persona + M1 vibe + pinned M2 facts
+     + recall()             ← BM25 top-K from M2/M3/M4
+     │
+     ▼
+LLM (any OpenAI-compatible) ← stream() / complete()
+     │
+     ▼
+Save to M5 (messages)
+     │
+     ▼  (every N turns or on session switch)
+runExtraction()             ← LLM extracts proposals → reconcile into M1–M4
+```
 
 ---
 
-## 开源与致谢声明
+## Install
 
-BME 是一套独立设计的清洁室记忆模型方案。架构思考受社区公开的长期记忆实践（分层记忆、原文可追溯、事实版本链、记忆生命周期与反思机制）启发，不复用任何第三方受限协议源代码。
+```bash
+npm install browser-memory-engine dexie zod
+```
 
-欢迎 Star 关注项目进展，或通过 Issue 讨论记忆模型设计与陪伴场景的边界问题。
+> **Peer dependencies**: `dexie ^4` and `zod ^3` must be installed separately.
+
+---
+
+## Quick Start
+
+```ts
+import {
+  db,
+  dbPersonas,
+  dbMessages,
+  buildSystemPrompt,
+  buildMessageHistory,
+  stream,
+  enqueueExtraction,
+  runExtraction,
+} from 'browser-memory-engine'
+
+const userId = 'user_1'
+
+// 1. Create or load a persona (M0)
+let personas = await dbPersonas.list(userId)
+if (personas.length === 0) {
+  await db.personas.add({
+    id: 'p1',
+    characterId: 'p1',
+    userId,
+    name: 'Assistant',
+    content: 'You are a warm, attentive AI companion.',
+    version: 1,
+    tags: [],
+    boundaries: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+  personas = await dbPersonas.list(userId)
+}
+
+const persona = personas[0]
+const scope = { userId, characterId: persona.characterId, worldId: 'real' }
+
+// 2. Build system prompt with injected memory
+const systemPrompt = await buildSystemPrompt(persona, scope, userInput)
+
+// 3. Build chat history from recent messages
+const recent = await dbMessages.recentInScope(scope, 20)
+const history = buildMessageHistory(recent)
+
+// 4. Stream a response
+const apiCfg = { apiKey: 'sk-...', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' }
+
+for await (const chunk of stream([{ role: 'system', content: systemPrompt }, ...history], apiCfg)) {
+  process.stdout.write(chunk.content)
+  if (chunk.done) break
+}
+
+// 5. Trigger memory extraction (call after every N turns)
+const msgIds = (await dbMessages.bySession(sessionId)).map(m => m.id)
+const taskId = await enqueueExtraction(scope, msgIds, sessionId)
+await runExtraction(taskId, scope, msgIds, apiCfg)
+```
+
+---
+
+## API Reference
+
+### Database helpers
+
+```ts
+import { db, dbFacts, dbEpisodes, dbCommitments, dbVibe, dbMessages, dbSessions, dbPersonas } from 'browser-memory-engine'
+
+// Scope-filtered queries
+await dbFacts.activeInScope(scope)        // active M2 facts
+await dbEpisodes.inScope(scope)           // all M3 episodes
+await dbCommitments.activeInScope(scope)  // pending/in-progress M4 commitments
+await dbVibe.latest(scope)                // most recent M1 snapshot
+await dbMessages.recentInScope(scope, 20) // last 20 messages
+```
+
+### Memory extraction
+
+```ts
+import { enqueueExtraction, runExtraction } from 'browser-memory-engine'
+
+// Idempotent — creates a task only if one doesn't exist for this message set
+const taskId = await enqueueExtraction(scope, messageIds, sessionId)
+
+// Runs the LLM extraction and reconciles proposals into M1–M4
+await runExtraction(taskId, scope, messageIds, apiCfg)
+```
+
+### Recall
+
+```ts
+import { recall } from 'browser-memory-engine'
+
+// BM25 + time-decay, returns top-K relevant memories for a query
+const hits = await recall(userQuery, scope, topK = 5, threshold = 0.3)
+// hits: Array<{ type: 'fact'|'episode'|'commitment', entity, score, relativeTime }>
+```
+
+### Context injection
+
+```ts
+import { buildSystemPrompt, buildMessageHistory } from 'browser-memory-engine'
+
+// Assembles: M0 persona + M1 vibe + pinned M2 + M4 commitments + BM25 recall
+const systemPrompt = await buildSystemPrompt(persona, scope, latestUserMessage)
+
+// Converts M5 records to [{ role, content }] for the API
+const history = buildMessageHistory(recentMessages)
+```
+
+### BM25 search
+
+```ts
+import { quickSearch, buildIndex, tokenize } from 'browser-memory-engine'
+
+// One-shot search over arbitrary documents
+const results = quickSearch(query, [{ id: 'a', text: '...' }], topK, threshold)
+
+// Build a persistent index for repeated queries
+const index = buildIndex(docs)
+const topMatches = index.topK(query, 5, 0.3)
+```
+
+---
+
+## Supported LLM Providers
+
+Any **OpenAI-compatible** endpoint works:
+
+| Provider | Base URL |
+|----------|----------|
+| DeepSeek | `https://api.deepseek.com` |
+| OpenAI | `https://api.openai.com` |
+| Qwen (DashScope) | `https://dashscope.aliyuncs.com/compatible-mode` |
+| Ollama (local) | `http://localhost:11434` |
+| LM Studio | `http://localhost:1234` |
+| Any vLLM / llama.cpp server | custom |
+
+---
+
+## License
+
+MIT © [liutingfenga](https://github.com/liutingfenga)

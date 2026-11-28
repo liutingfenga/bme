@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.suo
+*.user
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# App entry (not part of the library)
+index.html
+src/main.ts
+
+# UI stores (app-level, not library)
+src/stores/
+
+# Lock file (optional to track)
+pnpm-lock.yaml
+
+# Internal spec doc
+Browser_Memory_Engine_BME_综合规范.md
