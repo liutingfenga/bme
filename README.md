@@ -8,6 +8,57 @@
 
 ---
 
+## 一句话安装
+
+```bash
+npm create bme@latest
+```
+
+或者使用 AI 智能体一句话安装（适用于 Claude Code、Codex、Grok、WorkBuddy 等）：
+
+```
+帮我用 create-bme 创建一个带记忆功能的聊天应用
+```
+
+AI 会自动运行 `npx create-bme` 并根据模板生成项目。
+
+**可用模板**：
+
+| 模板 | 说明 | 适用场景 |
+|------|------|----------|
+| `minimal` | 仅核心逻辑 | 测试 / 嵌入已有应用 |
+| `vue` | Vue 3 应用 | Web 前端 |
+| `react` | React 18 应用 | Web 前端 |
+| `node-cli` | Node.js 命令行 | 终端工具 / 服务端 |
+| `umd` | UMD 构建示例 | 浏览器 `<script>` 直接引入 |
+
+**指定模板**：
+
+```bash
+npm create bme@latest my-app -- --template vue
+# 或
+npx create-bme my-app --template react
+npx create-bme --list      # 列出所有模板 (JSON)
+npx create-bme --json      # 查看完整配置 (JSON)
+```
+
+**在浏览器中直接使用（无需打包）**：
+
+```html
+<script src="https://unpkg.com/browser-memory-engine/dist/bme.umd.js"></script>
+<script>
+  const { db, stream, buildSystemPrompt } = window.BME
+</script>
+```
+
+**在 Node.js / 前端工程中使用**：
+
+```bash
+npm install browser-memory-engine dexie zod
+```
+
+---
+
 ## 架构
 
 BME 将记忆分为六层（M0–M5）：
@@ -233,6 +284,45 @@ runExtraction()             ← LLM extracts proposals → reconcile into M1–M
 ```
 
 ### Install
+
+**One command (AI-agent friendly)**:
+
+```bash
+npm create bme@latest
+```
+
+Works with AI agents (Claude Code, Codex, Grok, WorkBuddy, etc.) — just say:
+
+```
+Create a chat app with long-term memory using create-bme
+```
+
+**Available templates**:
+
+| Template | Description | Use case |
+|----------|-------------|----------|
+| `minimal` | Core logic only | Testing / embedding |
+| `vue` | Vue 3 app | Web frontend |
+| `react` | React 18 app | Web frontend |
+| `node-cli` | Node.js CLI | Terminal / server-side |
+| `umd` | UMD browser example | `<script>` tag, no build tools |
+
+```bash
+npx create-bme my-app --template vue
+npx create-bme --list   # list templates as JSON
+npx create-bme --json   # print full config as JSON
+```
+
+**Browser (no bundler)**:
+
+```html
+<script src="https://unpkg.com/browser-memory-engine/dist/bme.umd.js"></script>
+<script>
+  const { db, stream, buildSystemPrompt } = window.BME
+</script>
+```
+
+**npm (Node.js / bundler)**:
 
 ```bash
 npm install browser-memory-engine dexie zod

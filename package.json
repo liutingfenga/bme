@@ -30,6 +30,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:umd": "vite build -c vite.umd.config.ts",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {

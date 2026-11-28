@@ -1,0 +1,22 @@
+{
+  "name": "create-bme",
+  "version": "0.1.0",
+  "description": "Scaffold a Browser Memory Engine project in one command",
+  "type": "module",
+  "bin": {
+    "create-bme": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "templates/"
+  ],
+  "keywords": [
+    "bme",
+    "browser-memory-engine",
+    "ai",
+    "scaffold",
+    "create"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}

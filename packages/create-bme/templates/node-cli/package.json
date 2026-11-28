@@ -1,0 +1,14 @@
+{
+  "name": "bme-cli-example",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "browser-memory-engine": "^0.1.0",
+    "dexie": "^4.0.10",
+    "zod": "^3.24.1"
+  }
+}
